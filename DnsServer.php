@@ -34,12 +34,14 @@ class DnsServer
      */
     public function recv($serv, $data, $clientInfo)
     {
-        // 调用注册插件
-        plugin::handle($data,$clientInfo);
+        // 调用请求前插件
+        plugin::begin($data,$clientInfo);
         // 转发dns请求数据包给代理对象
         $this->agent->send($data);
         // 从agent对象获取结果
         $responseDns = $this->agent->recv();
+        // 调用请求后插件
+        plugin::end($responseDns,$data,$clientInfo);
         // 得到的结果回发给客户
         $serv->sendto($clientInfo['address'], $clientInfo['port'], $responseDns);
     }
@@ -52,7 +54,7 @@ class DnsServer
     }
 }
 
-$dnsAgent = new DnsAgent('10.202.72.118',53);
+$dnsAgent = new DnsAgent('192.168.1.1',53);
 $dnsServer = new DnsServer(['listenIp' => '0.0.0.0', 'listenPort' => 53], $dnsAgent);
 
 $dnsServer->listen();

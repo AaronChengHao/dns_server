@@ -13,7 +13,9 @@ class DnsAgent implements Agent
         $this->agentIp = $agentIp;
         $this->agentPort = $agentPort;
         $this->client = new Swoole\Client(SWOOLE_SOCK_UDP);
-        $this->client->connect($this->agentIp,$agentPort,1);
+        if (!$this->client->connect($this->agentIp,$agentPort,1)) {
+            die("DNS代理服务器连接失败");
+        }
     }
 
     public function send($data)
