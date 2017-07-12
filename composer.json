@@ -1,0 +1,17 @@
+{
+    "name": "aaron/dns",
+    "description": "dns server",
+    "authors": [
+        {
+            "name": "Aaron",
+            "email": "616915054@qq.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {},
+    "autoload":{
+        "psr-4": {
+            "Dns\\" : "src"
+        }
+    }
+}
