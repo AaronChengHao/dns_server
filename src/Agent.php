@@ -30,7 +30,6 @@ class Agent
 
     public function recv()
     {
-        echo "string";
         return fread($this->client, static::$readBufferLen);
     }
 

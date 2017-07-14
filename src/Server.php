@@ -31,17 +31,18 @@ class Server
         $errno = $errstr = null;
         $socket = stream_socket_server($socketString, $errno, $errstr, STREAM_SERVER_BIND);
         do {
-            var_dump($socket);
-            $buffer = stream_socket_recvfrom($socket, static::$recvBufferLen, 0, $address);
-            var_dump($buffer);
-            $this->agent->send($buffer);
-            var_dump($this->agent->recv());
-
-
-            $outstring = "接收到数据:{$buffer} ip:{$address}";
-            echo iconv('UTF-8', 'GBK', $outstring),PHP_EOL;
-            stream_socket_sendto($socket, date("D M j H:i:s Y\r\n"), 0, $address);
-        } while ($buffer);
+            echo "start:------",PHP_EOL;
+            $request = stream_socket_recvfrom($socket, static::$recvBufferLen, 0, $address);
+            if (empty($request) || empty($address)) {
+                continue;
+            }
+            echo "IP:{$address}\nrequest:{$request}------",PHP_EOL;
+            $this->agent->send($request);
+            $response = $this->agent->recv();
+            echo "response:{$response}------",PHP_EOL;
+            $sendLen = stream_socket_sendto($socket, $response, 0, $address);
+            echo "send:{$sendLen}------IP:{$address}",PHP_EOL,PHP_EOL,PHP_EOL;
+        } while (true);
 
     }
 
@@ -70,4 +71,7 @@ class Server
     }
 }
 
-
+function output($content = ''){
+    echo "length:",strlen($content),PHP_EOL;
+    echo iconv('UTF-8', 'GBK', $content),PHP_EOL;
+}
