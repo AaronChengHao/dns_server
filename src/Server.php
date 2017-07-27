@@ -1,14 +1,29 @@
 <?php
 namespace Dns;
 
+use Dns\Agent;
+use Dns\Exception\NotFoundException;
+
 class Server
 {
-    protected $listenIp = NULL;
+    /**
+     * ¼àÌýip
+     */
+    protected $listenIp = '0.0.0.0';
 
+    /**
+     * ¼àÌý¶Ë¿Ú
+     */
     protected $listenPort = 53;
 
+    /**
+     * DNS ·þÎñ
+     */
     protected $server = NULL;
 
+    /**
+     * Dns ¿Í»§¶Ë´úÀí¶ÔÏó
+     */
     protected $agent = NULL;
 
     public static $recvBufferLen = 8192;
@@ -18,63 +33,52 @@ class Server
     {
         self::checkEnv();
         $this->listenIp = $config['ip'];
-        $this->listenPort = $config['port'];
+        $this->listenPort = (int)$config['port'];
         $this->agent = $agent;
-        //åˆ›å»ºdnsServerå¯¹è±¡ï¼Œç±»åž‹ä¸ºSWOOLE_SOCK_UDP
-        $this->server = new Swoole\Server($this->listenIp, $this->listenPort, SWOOLE_BASE, SWOOLE_SOCK_UDP);
-        if (!$this->server) {
-            exit('Error: Swoole Server Create Fail!');
-        }
     }
 
-
+    /**
+     * ¿ªÊ¼¼àÌý
+     */
     public function listen()
     {
-        $socketString = "udp://{$this->listenIp}:{$this->listenPort}";
-        $errno = $errstr = null;
-        $socket = stream_socket_server($socketString, $errno, $errstr, STREAM_SERVER_BIND);
-        do {
-            echo "start:------",PHP_EOL;
-            $request = stream_socket_recvfrom($socket, static::$recvBufferLen, 0, $address);
-            if (empty($request) || empty($address)) {
-                continue;
+        $this->server = new Swoole\Server($this->listenIp, $this->listenPort, SWOOLE_BASE, SWOOLE_SOCK_UDP);
+        $this->server->on('Packet',[$this,'recv']);
+        $this->server->start();
+    }
+
+    /**
+     * ½ÓÊÕdnsÇëÇóÊý¾Ý
+     */
+    public function recv($serv, $data, $clientInfo)
+    {
+        if ($this->agent->send($data) > 0){
+            $msg = $this->agent->recv();
+            if ($msg){
+                $this->send($clientInfo, $msg);
             }
-            echo "IP:{$address}\nrequest:{$request}------",PHP_EOL;
-            $this->agent->send($request);
-            $response = $this->agent->recv();
-            echo "response:{$response}------",PHP_EOL;
-            $sendLen = stream_socket_sendto($socket, $response, 0, $address);
-            echo "send:{$sendLen}------IP:{$address}",PHP_EOL,PHP_EOL,PHP_EOL;
-        } while (true);
+        }
 
     }
 
     /**
-     * æŽ¥æ”¶è¯·æ±‚å¤„ç†æ–¹æ³•
+     * »ØËÍdns½âÎöµÄÊý¾Ý
      */
-    public function recv($serv, $data, $clientInfo)
+    public function send($clientInfo,$data)
     {
-        // è°ƒç”¨è¯·æ±‚å‰æ’ä»¶
-        plugin::begin($data,$clientInfo);
-        // è½¬å‘dnsè¯·æ±‚æ•°æ®åŒ…ç»™ä»£ç†å¯¹è±¡
-        $this->agent->send($data);
-        // ä»Žagentå¯¹è±¡èŽ·å–ç»“æžœ
-        $responseDns = $this->agent->recv();
-        // è°ƒç”¨è¯·æ±‚åŽæ’ä»¶
-        plugin::end($responseDns,$data,$clientInfo);
-        // å¾—åˆ°çš„ç»“æžœå›žå‘ç»™å®¢æˆ·
-        $serv->sendto($clientInfo['address'], $clientInfo['port'], $responseDns);
+        $remoteIp = $clientInfo['address'];
+        $port = $clientInfo['port'];
+        $this->server->sendto($remoteIp, $port, $data);
     }
 
+    /**
+     * swoole »·¾³¼ì²é
+     *
+     */
     public static function checkEnv()
     {
         if (!extension_loaded('swoole')) {
-            die("Error: Swoole Extension is not loaded!");
+            throw new NotFoundException("rror: Swoole Extension is not loaded!", 1);
         }
     }
-}
-
-function output($content = ''){
-    echo "length:",strlen($content),PHP_EOL;
-    echo iconv('UTF-8', 'GBK', $content),PHP_EOL;
 }
