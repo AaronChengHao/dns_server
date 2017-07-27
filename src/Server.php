@@ -20,8 +20,11 @@ class Server
         $this->listenIp = $config['ip'];
         $this->listenPort = $config['port'];
         $this->agent = $agent;
-        // //创建dnsServer对象，类型为SWOOLE_SOCK_UDP
-        // $this->server = new Swoole\Server($this->listenIp, $this->listenPort, SWOOLE_BASE, SWOOLE_SOCK_UDP);
+        //创建dnsServer对象，类型为SWOOLE_SOCK_UDP
+        $this->server = new Swoole\Server($this->listenIp, $this->listenPort, SWOOLE_BASE, SWOOLE_SOCK_UDP);
+        if (!$this->server) {
+            exit('Error: Swoole Server Create Fail!');
+        }
     }
 
 
@@ -65,9 +68,9 @@ class Server
 
     public static function checkEnv()
     {
-        // if (!extension_loaded('swoole')) {
-        //     die("Error: Swoole Extension is not loaded!");
-        // }
+        if (!extension_loaded('swoole')) {
+            die("Error: Swoole Extension is not loaded!");
+        }
     }
 }
 
