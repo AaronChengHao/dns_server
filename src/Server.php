@@ -3,33 +3,35 @@ namespace Dns;
 
 use Dns\Agent;
 use Dns\Exception\NotFoundException;
+use Dns\Request;
+
 
 class Server
 {
     /**
-     * ¼àÌıip
+     * ç›‘å¬ip
      */
     protected $listenIp = '0.0.0.0';
 
     /**
-     * ¼àÌı¶Ë¿Ú
+     * ç›‘å¬ç«¯å£
      */
     protected $listenPort = 53;
 
     /**
-     * DNS ·şÎñ
+     * DNS æœåŠ¡
      */
     protected $server = NULL;
 
     /**
-     * Dns ¿Í»§¶Ë´úÀí¶ÔÏó
+     * Dns å®¢æˆ·ç«¯ä»£ç†å¯¹è±¡
      */
     protected $agent = NULL;
 
     public static $recvBufferLen = 8192;
 
 
-    public function __construct(array $config, Agent $agent)
+    public function __construct( $config, $agent)
     {
         self::checkEnv();
         $this->listenIp = $config['ip'];
@@ -38,31 +40,33 @@ class Server
     }
 
     /**
-     * ¿ªÊ¼¼àÌı
+     * å¼€å§‹ç›‘å¬
      */
     public function listen()
     {
-        $this->server = new Swoole\Server($this->listenIp, $this->listenPort, SWOOLE_BASE, SWOOLE_SOCK_UDP);
+        $this->server = new \Swoole\Server($this->listenIp, $this->listenPort, SWOOLE_BASE, SWOOLE_SOCK_UDP);
         $this->server->on('Packet',[$this,'recv']);
         $this->server->start();
     }
 
     /**
-     * ½ÓÊÕdnsÇëÇóÊı¾İ
+     * æ¥æ”¶dnsè¯·æ±‚æ•°æ®
      */
     public function recv($serv, $data, $clientInfo)
     {
-        if ($this->agent->send($data) > 0){
-            $msg = $this->agent->recv();
-            if ($msg){
-                $this->send($clientInfo, $msg);
+        $request = new Request($data);
+        echo "è¯·æ±‚åŸŸåï¼š".$request->getFilterDomain().PHP_EOL;
+        if ($this->agent->send($request) > 0){
+            $response = $this->agent->recv();
+            if (!$response->isEmpty()){
+                $this->send($clientInfo, $response->getRawData());
             }
         }
 
     }
 
     /**
-     * »ØËÍdns½âÎöµÄÊı¾İ
+     * å›é€dnsè§£æçš„æ•°æ®
      */
     public function send($clientInfo,$data)
     {
@@ -72,7 +76,7 @@ class Server
     }
 
     /**
-     * swoole »·¾³¼ì²é
+     * swoole ç¯å¢ƒæ£€æŸ¥
      *
      */
     public static function checkEnv()

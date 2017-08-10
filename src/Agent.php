@@ -3,7 +3,9 @@ namespace Dns;
 
 use Dns\Exception\NotFoundException;
 use Dns\Exception\ConnectException;
-
+use Swoole\Client;
+use Dns\Package;
+use Dns\Response;
 
 class Agent
 {
@@ -28,7 +30,7 @@ class Agent
         self::checkEnv();
         $this->agentIp = $config['ip'];
         $this->agentPort = $config['port'];
-        $this->client = new Swoole\Client(SWOOLE_SOCK_UDP);
+        $this->client = new Client(SWOOLE_SOCK_UDP);
         if (!$this->client->connect($this->agentIp, $this->agentPort,1)){
             throw new ConnectException("Error: connect dns server fail!", 1);
         }
@@ -40,9 +42,9 @@ class Agent
      * @param $data 要发送的数据
      * @return 返回发送的字节数
      */
-    public function send($data)
+    public function send(Package $package)
     {
-        return $this->client->send($data);
+        return $this->client->send($package->getRawData());
     }
 
     /**
@@ -52,7 +54,7 @@ class Agent
      */
     public function recv()
     {
-        return $this->client->recv();
+        return new Response($this->client->recv());
     }
 
     /**
